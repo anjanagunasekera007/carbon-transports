@@ -93,8 +93,12 @@ public class HTTPServerChannelInitializer extends ChannelInitializer<SocketChann
         if (RequestSizeValidationConfiguration.getInstance().isRequestSizeValidation()) {
             pipeline.addLast("custom-aggregator", new CustomHttpObjectAggregator());
         }
+
+        pipeline.addLast("continueHandler",new HttpExpect100ContinueHandler());
+
         pipeline.addLast("compressor", new HttpContentCompressor());
         pipeline.addLast("chunkWriter", new ChunkedWriteHandler());
+
 
         if (httpTraceLogEnabled) {
             pipeline.addLast(Constants.HTTP_TRACE_LOG_HANDLER,
