@@ -53,7 +53,7 @@ public class SourceHandler extends ChannelInboundHandlerAdapter {
     private static Logger log = LoggerFactory.getLogger(SourceHandler.class);
 
     protected ChannelHandlerContext ctx;
-    private HTTPCarbonMessage cMsg;
+    protected HTTPCarbonMessage cMsg;
     private Map<String, GenericObjectPool> targetChannelPool = new ConcurrentHashMap<>();
     private ServerConnectorFuture serverConnectorFuture;
     private String interfaceId;

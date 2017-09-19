@@ -94,10 +94,22 @@ public class HTTPServerChannelInitializer extends ChannelInitializer<SocketChann
             pipeline.addLast("custom-aggregator", new CustomHttpObjectAggregator());
         }
 
-        pipeline.addLast("continueHandler",new HttpExpect100ContinueHandler());
+        System.out.println("HIT");
+        try {
+            pipeline.addLast("continueHandler",new HttpExpect100ContinueHandler(serverConnectorFuture, interfaceId));
+        } catch (Exception e) {
+            log.error("Cannot Create 100-continue handler ", e);
+        }
+//        pipeline.addLast("chandler",new HttpExpect100ContinueHandler());
+        System.out.println("END");
 
         pipeline.addLast("compressor", new HttpContentCompressor());
         pipeline.addLast("chunkWriter", new ChunkedWriteHandler());
+
+//        System.out.println("HIT = = = ");
+//        pipeline.addLast("continueHandler",new HttpExpect100ContinueHandler());
+//        System.out.println("DONE = = = ");
+
 
 
         if (httpTraceLogEnabled) {
