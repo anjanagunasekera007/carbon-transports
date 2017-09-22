@@ -18,7 +18,6 @@ package org.wso2.carbon.transport.http.netty.listener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
@@ -81,7 +80,7 @@ public class HTTPServerChannelInitializer extends ChannelInitializer<SocketChann
     /**
      * Configure the pipeline if user sent HTTP requests
      *
-     * @param pipeline                    Channel
+     * @param pipeline Channel
      */
     public void configureHTTPPipeline(ChannelPipeline pipeline) {
         // Removed the default encoder since http/2 version upgrade already added to pipeline
@@ -93,24 +92,8 @@ public class HTTPServerChannelInitializer extends ChannelInitializer<SocketChann
         if (RequestSizeValidationConfiguration.getInstance().isRequestSizeValidation()) {
             pipeline.addLast("custom-aggregator", new CustomHttpObjectAggregator());
         }
-
-        System.out.println("HIT");
-        try {
-            pipeline.addLast("continueHandler",new HttpExpect100ContinueHandler(serverConnectorFuture, interfaceId));
-        } catch (Exception e) {
-            log.error("Cannot Create 100-continue handler ", e);
-        }
-//        pipeline.addLast("chandler",new HttpExpect100ContinueHandler());
-        System.out.println("END");
-
-        pipeline.addLast("compressor", new HttpContentCompressor());
+        pipeline.addLast("compressor", new CustomHttpContentCompressor());
         pipeline.addLast("chunkWriter", new ChunkedWriteHandler());
-
-//        System.out.println("HIT = = = ");
-//        pipeline.addLast("continueHandler",new HttpExpect100ContinueHandler());
-//        System.out.println("DONE = = = ");
-
-
 
         if (httpTraceLogEnabled) {
             pipeline.addLast(Constants.HTTP_TRACE_LOG_HANDLER,
