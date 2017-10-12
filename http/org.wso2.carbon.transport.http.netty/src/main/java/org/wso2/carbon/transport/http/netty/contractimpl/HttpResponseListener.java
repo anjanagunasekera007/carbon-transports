@@ -28,6 +28,7 @@ import io.netty.handler.codec.http.LastHttpContent;
 import org.wso2.carbon.transport.http.netty.common.Constants;
 import org.wso2.carbon.transport.http.netty.common.Util;
 import org.wso2.carbon.transport.http.netty.contract.HttpConnectorListener;
+import org.wso2.carbon.transport.http.netty.internal.HTTPTransportContextHolder;
 import org.wso2.carbon.transport.http.netty.listener.RequestDataHolder;
 import org.wso2.carbon.transport.http.netty.message.HTTPCarbonMessage;
 
@@ -41,47 +42,48 @@ public class HttpResponseListener implements HttpConnectorListener {
 
     public HttpResponseListener(ChannelHandlerContext channelHandlerContext, HTTPCarbonMessage requestMsg) {
         this.sourceContext = channelHandlerContext;
-        requestDataHolder = new RequestDataHolder(requestMsg);
+        this.requestDataHolder = new RequestDataHolder(requestMsg);
     }
 
     @Override
-    public void onMessage(HTTPCarbonMessage httpMessage) {
-        boolean connectionCloseAfterResponse = shouldConnectionClose(httpMessage);
+    public void onMessage(HTTPCarbonMessage httpResponseMessage) {
+        sourceContext.channel().eventLoop().execute(() -> {
+            boolean connectionCloseAfterResponse = shouldConnectionClose(httpResponseMessage);
 
-        Util.prepareBuiltMessageForTransfer(httpMessage);
-        Util.setupTransferEncodingForResponse(httpMessage, requestDataHolder);
-//      TODO: Revisit this once the refactor is completed
-//        if (HTTPTransportContextHolder.getInstance().getHandlerExecutor() != null) {
-//            HTTPTransportContextHolder.getInstance().getHandlerExecutor()
-        // .executeAtSourceResponseReceiving(httpMessage);
-//        }
-        final HttpResponse response = Util.createHttpResponse(httpMessage, connectionCloseAfterResponse);
-
-        sourceContext.write(response);
-
-        while (true) {
-            if (httpMessage.isEndOfMsgAdded() && httpMessage.isEmpty()) {
-                ChannelFuture future = sourceContext.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
-                if (connectionCloseAfterResponse) {
-                    future.addListener(ChannelFutureListener.CLOSE);
-                }
-                break;
+            Util.prepareBuiltMessageForTransfer(httpResponseMessage);
+            Util.setupTransferEncodingForResponse(httpResponseMessage, requestDataHolder);
+            if (HTTPTransportContextHolder.getInstance().getHandlerExecutor() != null) {
+                HTTPTransportContextHolder.getInstance().getHandlerExecutor()
+                        .executeAtSourceResponseReceiving(httpResponseMessage);
             }
-            HttpContent httpContent = httpMessage.getHttpContent();
-            if (httpContent instanceof LastHttpContent) {
-                ChannelFuture future = sourceContext.writeAndFlush(httpContent);
-                if (connectionCloseAfterResponse) {
-                    future.addListener(ChannelFutureListener.CLOSE);
+
+            final HttpResponse response = Util
+                    .createHttpResponse(httpResponseMessage, connectionCloseAfterResponse);
+            sourceContext.write(response);
+
+            while (true) {
+                if (httpResponseMessage.isEndOfMsgAdded() && httpResponseMessage.isEmpty()) {
+                    ChannelFuture future = sourceContext.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+                    if (connectionCloseAfterResponse) {
+                        future.addListener(ChannelFutureListener.CLOSE);
+                    }
+                    break;
                 }
-//      TODO: Revisit this once the refactor is completed
-//                    if (HTTPTransportContextHolder.getInstance().getHandlerExecutor() != null) {
-//                        HTTPTransportContextHolder.getInstance().getHandlerExecutor().
-//                                executeAtSourceResponseSending(httpMessage);
-//                    }
-                break;
+                HttpContent httpContent = httpResponseMessage.getHttpContent();
+                if (httpContent instanceof LastHttpContent) {
+                    ChannelFuture future = sourceContext.writeAndFlush(httpContent);
+                    if (connectionCloseAfterResponse) {
+                        future.addListener(ChannelFutureListener.CLOSE);
+                    }
+                    if (HTTPTransportContextHolder.getInstance().getHandlerExecutor() != null) {
+                        HTTPTransportContextHolder.getInstance().getHandlerExecutor().
+                                executeAtSourceResponseSending(httpResponseMessage);
+                    }
+                    break;
+                }
+                sourceContext.write(httpContent);
             }
-            sourceContext.write(httpContent);
-        }
+        });
     }
 
     // Decides whether to close the connection after sending the response
