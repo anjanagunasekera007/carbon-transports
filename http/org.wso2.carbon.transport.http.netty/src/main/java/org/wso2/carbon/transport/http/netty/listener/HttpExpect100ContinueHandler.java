@@ -16,6 +16,7 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import org.wso2.carbon.transport.http.netty.contract.ServerConnectorFuture;
+import org.wso2.carbon.transport.http.netty.message.HTTPCarbonMessage;
 
 
 //**
@@ -99,6 +100,7 @@ public class HttpExpect100ContinueHandler extends SourceHandler {
 
         //==================================================================
 
+        HTTPCarbonMessage cMsg= null;
         if (msg instanceof HttpRequest) {
             HttpRequest request = (HttpRequest) msg;
             HttpHeaders headers = request.headers();
@@ -110,6 +112,7 @@ public class HttpExpect100ContinueHandler extends SourceHandler {
                                                                                   .wrappedBuffer(s.getBytes("UTF-8")));
                 ctx.writeAndFlush(rsp);
                 cMsg = setupCarbonMessage(request);
+                System.out.println(cMsg);
             } else {
                 super.channelRead(ctx, msg);
             }
@@ -117,7 +120,7 @@ public class HttpExpect100ContinueHandler extends SourceHandler {
             ByteBuf content = ((HttpContent) msg).content();
             cMsg.addHttpContent(new DefaultLastHttpContent(content));
             cMsg.setEndOfMsgAdded(true);
-            publishToMessageProcessor(cMsg);
+//            publishToMessageProcessor(cMsg);
         }
 
 
