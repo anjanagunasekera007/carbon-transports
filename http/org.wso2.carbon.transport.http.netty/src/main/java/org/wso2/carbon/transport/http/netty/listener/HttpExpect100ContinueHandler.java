@@ -23,6 +23,9 @@ import org.wso2.carbon.transport.http.netty.message.HTTPCarbonMessage;
 // * Created by anjana on 9/8/17.
 // */
 public class HttpExpect100ContinueHandler extends SourceHandler {
+
+    HTTPCarbonMessage cMsg = null;
+    boolean is100Continue = false;
     public HttpExpect100ContinueHandler(ServerConnectorFuture serverConnectorFuture, String interfaceId)
             throws Exception {
         super(serverConnectorFuture, interfaceId);
@@ -99,11 +102,11 @@ public class HttpExpect100ContinueHandler extends SourceHandler {
 
 
         //==================================================================
-
-        HTTPCarbonMessage cMsg= null;
         if (msg instanceof HttpRequest) {
             HttpRequest request = (HttpRequest) msg;
             HttpHeaders headers = request.headers();
+            boolean bb = headers.contains("Expect");
+            System.out.println(bb);
             if (headers.contains("Expect")) {
                 System.out.println(" ================ found Expect 100 - continue --------------------------");
                 String s = "";
@@ -112,16 +115,25 @@ public class HttpExpect100ContinueHandler extends SourceHandler {
                                                                                   .wrappedBuffer(s.getBytes("UTF-8")));
                 ctx.writeAndFlush(rsp);
                 cMsg = setupCarbonMessage(request);
+                is100Continue = true;
+
                 System.out.println(cMsg);
             } else {
                 super.channelRead(ctx, msg);
             }
-        } else if (msg instanceof HttpContent && cMsg != null) {
+        } else if (msg instanceof HttpContent && is100Continue) {
+            System.out.println("=============== Content recieved =====================");
+            ByteBuf c = ((HttpContent) msg).content();
+            System.out.println(c.toString());
             ByteBuf content = ((HttpContent) msg).content();
+
             cMsg.addHttpContent(new DefaultLastHttpContent(content));
             cMsg.setEndOfMsgAdded(true);
-//            publishToMessageProcessor(cMsg);
+            notifyRequestListener(cMsg, ctx);
+        } else {
+            super.channelRead(ctx, msg);
         }
+
 
 
 //

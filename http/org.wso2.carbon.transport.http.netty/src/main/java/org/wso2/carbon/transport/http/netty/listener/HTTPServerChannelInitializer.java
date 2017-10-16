@@ -94,16 +94,11 @@ public class HTTPServerChannelInitializer extends ChannelInitializer<SocketChann
             pipeline.addLast("custom-aggregator", new CustomHttpObjectAggregator(requestSizeValidationConfig));
         }
 
-        //----
+        //---------------------------------------------------------------------------------------------------------
         System.out.println("HIT");
-        try {
-         pipeline.addLast("continueHandler",new HttpExpect100ContinueHandler(serverConnectorFuture, interfaceId));
-         } catch (Exception e) {
-         log.error("Cannot Create 100-continue handler ", e);
-          }
         //        pipeline.addLast("chandler",new HttpExpect100ContinueHandler());
         System.out.println("END");
-        //----
+        //---------------------------------------------------------------------------------------------------------
         pipeline.addLast("compressor", new CustomHttpContentCompressor());
         pipeline.addLast("chunkWriter", new ChunkedWriteHandler());
 
@@ -116,6 +111,14 @@ public class HTTPServerChannelInitializer extends ChannelInitializer<SocketChann
                          new WebSocketServerHandshakeHandler(this.serverConnectorFuture, this.interfaceId));
 
         try {
+            pipeline.addLast("continueHandler",new HttpExpect100ContinueHandler(serverConnectorFuture, interfaceId));
+        } catch (Exception e) {
+            System.out.println();
+            log.error("Cannot Create 100-continue handler ", e);
+        }
+
+        try {
+
             pipeline.addLast(Constants.HTTP_SOURCE_HANDLER,
                              new SourceHandler(this.serverConnectorFuture, this.interfaceId));
         } catch (Exception e) {
