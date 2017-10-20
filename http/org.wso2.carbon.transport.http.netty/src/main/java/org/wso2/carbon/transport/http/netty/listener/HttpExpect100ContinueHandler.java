@@ -103,6 +103,7 @@ public class HttpExpect100ContinueHandler extends SourceHandler {
 
         //==================================================================
         if (msg instanceof HttpRequest) {
+            System.out.println(" : : : : : " + "instance of http request " + " : : : : : : : : ");
             HttpRequest request = (HttpRequest) msg;
             HttpHeaders headers = request.headers();
             boolean bb = headers.contains("Expect");
@@ -119,9 +120,13 @@ public class HttpExpect100ContinueHandler extends SourceHandler {
 
                 System.out.println(cMsg);
             } else {
+                System.out.println(" : : : : : " + " NO 100 CONTINUE ALTHOUGH A http request " + " : : : : : : : : ");
+
                 super.channelRead(ctx, msg);
             }
         } else if (msg instanceof HttpContent && is100Continue) {
+            System.out.println(" : : : : : " + " IS HTTP CONTENT : : ");
+
             System.out.println("=============== Content recieved =====================");
             ByteBuf c = ((HttpContent) msg).content();
             System.out.println(c.toString());
